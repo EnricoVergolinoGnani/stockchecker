@@ -1,17 +1,17 @@
 'use strict';
+require('dotenv').config();
+const express     = require('express');
+const bodyParser  = require('body-parser');
+const cors        = require('cors');
 
-var express     = require('express');
-var bodyParser  = require('body-parser');
-var expect      = require('chai').expect;
-var cors        = require('cors');
+require("./DB-module");
+const helmet = require('helmet')
 
-var apiRoutes         = require('./routes/api.js');
-var fccTestingRoutes  = require('./routes/fcctesting.js');
-var runner            = require('./test-runner');
+const apiRoutes         = require('./routes/api.js');
+const fccTestingRoutes  = require('./routes/fcctesting.js');
+const runner            = require('./test-runner');
 
-let helmet = require('helmet')
-
-var app = express();
+const app = express();
 
 app.use('/public', express.static(process.cwd() + '/public'));
 
@@ -19,12 +19,21 @@ app.use(cors({origin: '*'})); //For FCC testing purposes only
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(helmet.contentSecurityPolicy({
-	directives:{
-		scriptSrc: ["'self'"],
-		styleSrc: ["'self'"]
-	}
-}))
+
+app.use(helmet({
+  frameguard: {
+    action: 'deny'
+  },
+  contentSecurityPolicy: { 
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'"],
+      scriptSrc: ["'self'", "trusted-cdn.com"] 
+    }
+  },
+  dnsPrefetchControl: false
+}));
+
 app.enable('trust proxy')
 
 //Index page (static HTML)
@@ -45,7 +54,6 @@ app.use(function(req, res, next) {
     .type('text')
     .send('Not Found');
 });
-
 
 //Start our server and tests!
 app.listen(process.env.PORT || 3000, function () {
